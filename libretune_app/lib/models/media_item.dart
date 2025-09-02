@@ -90,4 +90,68 @@ class MediaItem {
       isLocal: isLocal ?? this.isLocal,
     );
   }
+
+  // JSON serialization
+  factory MediaItem.fromJson(Map<String, dynamic> json) {
+    return MediaItem(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      artist: json['artist'] as String?,
+      album: json['album'] as String?,
+      description: json['description'] as String?,
+      thumbnailUrl: json['thumbnailUrl'] as String?,
+      streamUrl: json['streamUrl'] as String?,
+      filePath: json['filePath'] as String?,
+      duration: json['duration'] != null 
+          ? Duration(milliseconds: json['duration'] as int) 
+          : null,
+      uploadDate: json['uploadDate'] != null 
+          ? DateTime.parse(json['uploadDate'] as String) 
+          : null,
+      viewCount: json['viewCount'] as int?,
+      tags: (json['tags'] as List?)?.cast<String>(),
+      type: MediaType.values.firstWhere(
+        (e) => e.toString() == 'MediaType.${json['type']}',
+        orElse: () => MediaType.audio,
+      ),
+      source: SourceType.values.firstWhere(
+        (e) => e.toString() == 'SourceType.${json['source']}',
+        orElse: () => SourceType.youtube,
+      ),
+      metadata: json['metadata'] as Map<String, dynamic>?,
+      isDownloaded: json['isDownloaded'] as bool? ?? false,
+      isLocal: json['isLocal'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'artist': artist,
+      'album': album,
+      'description': description,
+      'thumbnailUrl': thumbnailUrl,
+      'streamUrl': streamUrl,
+      'filePath': filePath,
+      'duration': duration?.inMilliseconds,
+      'uploadDate': uploadDate?.toIso8601String(),
+      'viewCount': viewCount,
+      'tags': tags,
+      'type': type.toString().split('.').last,
+      'source': source.toString().split('.').last,
+      'metadata': metadata,
+      'isDownloaded': isDownloaded,
+      'isLocal': isLocal,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MediaItem && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
 }

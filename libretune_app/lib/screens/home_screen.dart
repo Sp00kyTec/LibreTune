@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import '../models/media_item.dart';
 import '../services/youtube_service.dart';
+import '../services/download_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final YouTubeService youtubeService;
+  final DownloadService downloadService;
+  
+  const HomeScreen({
+    super.key,
+    required this.youtubeService,
+    required this.downloadService,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final YouTubeService _youtubeService = YouTubeService();
-  final TextEditingController _searchController = TextEditingController();
   List<MediaItem> _searchResults = [];
   bool _isLoading = false;
+  final TextEditingController _searchController = TextEditingController();
 
   Future<void> _performSearch(String query) async {
     if (query.isEmpty) return;
@@ -24,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final results = await _youtubeService.searchContent(query);
+      final results = await widget.youtubeService.searchContent(query);
       setState(() {
         _searchResults = results;
         _isLoading = false;
@@ -36,6 +43,40 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Search failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadItem(MediaItem item) async {
+    try {
+      final task = await widget.downloadService.downloadContent(
+        item,
+        onProgress: (progress) {
+          // Update UI with progress
+          print('Download progress: ${(progress * 100).toStringAsFixed(1)}%');
+        },
+        onComplete: (filePath) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Downloaded: ${item.title}')),
+            );
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Download failed: $error')),
+            );
+          }
+        },
+      );
+      
+      print('Download started: ${task.id}');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download error: $e')),
         );
       }
     }
@@ -56,13 +97,13 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.download),
             onPressed: () {
-              // Navigate to downloads
+              Navigator.pushNamed(context, '/downloads');
             },
           ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Open settings
+              // TODO: Open settings
             },
           ),
         ],
@@ -194,19 +235,19 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.download),
               onPressed: () {
-                // Download item
+                _downloadItem(item);
               },
             ),
             IconButton(
               icon: const Icon(Icons.play_arrow),
               onPressed: () {
-                // Play item
+                // TODO: Play item
               },
             ),
           ],
         ),
         onTap: () {
-          // Show item details
+          // TODO: Show item details
         },
       ),
     );

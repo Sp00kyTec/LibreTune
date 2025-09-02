@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'screens/downloads_screen.dart';
+import 'services/download_service.dart';
+import 'services/youtube_service.dart';
 
 void main() {
   runApp(const LibreTuneApp());
@@ -10,6 +13,10 @@ class LibreTuneApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Initialize services
+    final youtubeService = YouTubeService();
+    final downloadService = DownloadService();
+    
     return MaterialApp(
       title: 'LibreTune',
       theme: ThemeData(
@@ -27,7 +34,15 @@ class LibreTuneApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.dark,
-      home: const HomeScreen(),
+      home: HomeScreen(
+        youtubeService: youtubeService,
+        downloadService: downloadService,
+      ),
+      routes: {
+        '/downloads': (context) => DownloadsScreen(
+              downloadService: downloadService,
+            ),
+      },
       debugShowCheckedModeBanner: false,
     );
   }
