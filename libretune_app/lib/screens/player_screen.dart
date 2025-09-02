@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/media_item.dart';
 import '../services/audio_service.dart';
 import '../widgets/visualizer.dart';
+import '../utils/error_handler.dart';
 
 class PlayerScreen extends StatefulWidget {
   final MediaItem mediaItem;
@@ -29,6 +30,8 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   bool _equalizerEnabled = false;
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
+  bool _isError = false;
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -67,20 +70,25 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       
       setState(() {
         _isPlaying = true;
+        _isError = false;
       });
       
       // Listen to position updates
       widget.audioService.positionStream.listen((position) {
-        setState(() {
-          _position = position;
-        });
+        if (mounted) {
+          setState(() {
+            _position = position;
+          });
+        }
       });
       
       // Listen to player state
       widget.audioService.playerStateStream.listen((state) {
-        setState(() {
-          _isPlaying = state == PlayerState.playing;
-        });
+        if (mounted) {
+          setState(() {
+            _isPlaying = state == PlayerState.playing;
+          });
+        }
       });
       
       // Set duration
@@ -90,9 +98,11 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
       
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to initialize player: $e')),
-        );
+        setState(() {
+          _isError = true;
+          _errorMessage = e.toString();
+        });
+        ErrorHandler.showSnackBar(context, 'Failed to initialize player: ${ErrorHandler.formatError(e)}');
       }
     }
   }
@@ -105,55 +115,120 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
   }
 
   Future<void> _togglePlayPause() async {
-    if (_isPlaying) {
-      await widget.audioService.pause();
-      _rotationController.stop();
-    } else {
-      await widget.audioService.resume();
-      _rotationController.repeat();
+    try {
+      if (_isPlaying) {
+        await widget.audioService.pause();
+        _rotationController.stop();
+      } else {
+        await widget.audioService.resume();
+        _rotationController.repeat();
+      }
+      setState(() {
+        _isPlaying = !_isPlaying;
+      });
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showSnackBar(context, 'Playback error: ${ErrorHandler.formatError(e)}');
+      }
     }
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
   }
 
   Future<void> _seekTo(double value) async {
-    final position = Duration(
-      milliseconds: (value * _duration.inMilliseconds).toInt(),
-    );
-    await widget.audioService.seek(position);
+    try {
+      final position = Duration(
+        milliseconds: (value * _duration.inMilliseconds).toInt(),
+      );
+      await widget.audioService.seek(position);
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showSnackBar(context, 'Seek error: ${ErrorHandler.formatError(e)}');
+      }
+    }
   }
 
   Future<void> _toggleEqualizer() async {
-    final newValue = !_equalizerEnabled;
-    await widget.audioService.setEqualizerEnabled(newValue);
-    setState(() {
-      _equalizerEnabled = newValue;
-    });
+    try {
+      final newValue = !_equalizerEnabled;
+      await widget.audioService.setEqualizerEnabled(newValue);
+      setState(() {
+        _equalizerEnabled = newValue;
+      });
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showSnackBar(context, 'Equalizer error: ${ErrorHandler.formatError(e)}');
+      }
+    }
   }
 
   Future<void> _applyPreset(String preset) async {
-    await widget.audioService.setEqualizerPreset(preset);
-    setState(() {
-      _selectedPreset = preset;
-    });
+    try {
+      await widget.audioService.setEqualizerPreset(preset);
+      setState(() {
+        _selectedPreset = preset;
+      });
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showSnackBar(context, 'Preset error: ${ErrorHandler.formatError(e)}');
+      }
+    }
   }
 
   Future<void> _setBandLevel(int index, double level) async {
-    await widget.audioService.setBandLevel(index, level);
-    setState(() {
-      _equalizerBands[index] = EqualizerBand(
-        index: _equalizerBands[index].index,
-        frequency: _equalizerBands[index].frequency,
-        level: level,
-        minLevel: _equalizerBands[index].minLevel,
-        maxLevel: _equalizerBands[index].maxLevel,
-      );
-    });
+    try {
+      await widget.audioService.setBandLevel(index, level);
+      setState(() {
+        _equalizerBands[index] = EqualizerBand(
+          index: _equalizerBands[index].index,
+          frequency: _equalizerBands[index].frequency,
+          level: level,
+          minLevel: _equalizerBands[index].minLevel,
+          maxLevel: _equalizerBands[index].maxLevel,
+        );
+      });
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showSnackBar(context, 'Band level error: ${ErrorHandler.formatError(e)}');
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isError) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error,
+                size: 60,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Playback Error',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -254,8 +329,9 @@ class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMix
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: widget.mediaItem.thumbnailUrl != null
-                    ? Image.network(
-                        widget.mediaItem.thumbnailUrl!,
+                    ? FadeInImage(
+                        placeholder: AssetImage('assets/placeholder.png'),
+                        image: NetworkImage(widget.mediaItem.thumbnailUrl!),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(

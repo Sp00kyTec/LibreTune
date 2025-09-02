@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/media_item.dart';
 
 class MediaCard extends StatefulWidget {
@@ -18,7 +19,7 @@ class MediaCard extends StatefulWidget {
   });
 
   @override
-  State<MediaCard> widget => _MediaCardState();
+  State<MediaCard> createState() => _MediaCardState();
 }
 
 class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMixin {
@@ -90,7 +91,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
                   ),
                   child: Row(
                     children: [
-                      // Thumbnail
+                      // Thumbnail with caching
                       _buildThumbnail(),
                       
                       // Content
@@ -121,7 +122,7 @@ class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMix
         ),
         image: widget.item.thumbnailUrl != null
             ? DecorationImage(
-                image: NetworkImage(widget.item.thumbnailUrl!),
+                image: CachedNetworkImageProvider(widget.item.thumbnailUrl!),
                 fit: BoxFit.cover,
               )
             : null,

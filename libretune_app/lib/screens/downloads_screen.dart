@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/media_item.dart';
 import '../services/download_service.dart';
 import '../widgets/media_card.dart';
+import '../utils/error_handler.dart';
 
 class DownloadsScreen extends StatefulWidget {
   final DownloadService downloadService;
@@ -10,7 +11,7 @@ class DownloadsScreen extends StatefulWidget {
   const DownloadsScreen({super.key, required this.downloadService});
 
   @override
-  State<DownloadsScreen> createState() => _DownloadsScreenState();
+  State<DownloadsScreen> widget => _DownloadsScreenState();
 }
 
 class _DownloadsScreenState extends State<DownloadsScreen> {
@@ -47,9 +48,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load downloads: $e')),
-        );
+        ErrorHandler.showSnackBar(context, 'Failed to load downloads: ${ErrorHandler.formatError(e)}');
       }
     }
   }
@@ -94,15 +93,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Download deleted')),
-        );
+        ErrorHandler.showSnackBar(context, 'Download deleted', isError: false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e')),
-        );
+        ErrorHandler.showSnackBar(context, 'Failed to delete: ${ErrorHandler.formatError(e)}');
       }
     }
   }
@@ -295,15 +290,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All downloads cleared')),
-        );
+        ErrorHandler.showSnackBar(context, 'All downloads cleared', isError: false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to clear downloads: $e')),
-        );
+        ErrorHandler.showSnackBar(context, 'Failed to clear downloads: ${ErrorHandler.formatError(e)}');
       }
     }
   }
@@ -311,9 +302,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   void _playDownloadedItem(MediaItem item) {
     // TODO: Implement playback for downloaded items
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Playback not implemented yet')),
-      );
+      ErrorHandler.showSnackBar(context, 'Playback not implemented yet');
     }
   }
 }
