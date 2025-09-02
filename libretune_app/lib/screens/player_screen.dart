@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/media_item.dart';
 import '../services/audio_service.dart';
+import '../widgets/visualizer.dart';
 
 class PlayerScreen extends StatefulWidget {
   final MediaItem mediaItem;
@@ -17,7 +18,7 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen> with TickerProviderStateMixin {
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -26,11 +27,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
   List<String> _presets = [];
   String _selectedPreset = 'Flat';
   bool _equalizerEnabled = false;
+  late AnimationController _rotationController;
+  late Animation<double> _rotationAnimation;
 
   @override
   void initState() {
     super.initState();
     _initializePlayer();
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
+    _rotationController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    )..repeat();
+
+    _rotationAnimation = Tween<double>(begin: 0, end: 2 * pi).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.linear),
+    );
   }
 
   Future<void> _initializePlayer() async {
@@ -85,14 +100,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void dispose() {
     widget.audioService.stop();
+    _rotationController.dispose();
     super.dispose();
   }
 
   Future<void> _togglePlayPause() async {
     if (_isPlaying) {
       await widget.audioService.pause();
+      _rotationController.stop();
     } else {
       await widget.audioService.resume();
+      _rotationController.repeat();
     }
     setState(() {
       _isPlaying = !_isPlaying;
@@ -118,7 +136,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     await widget.audioService.setEqualizerPreset(preset);
     setState(() {
       _selectedPreset = preset;
-      // Update band levels to match preset
     });
   }
 
@@ -138,12 +155,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.mediaItem.title),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -158,7 +169,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Album art
+              // Header
+              _buildHeader(),
+              
+              // Visualizer
+              const SizedBox(height: 20),
+              Visualizer(
+                isActive: _isPlaying,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              
+              // Album art with rotation
               _buildAlbumArt(),
               
               // Song info
@@ -184,48 +205,81 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          Text(
+            'Now Playing',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () {
+              // Show more options
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAlbumArt() {
     return Padding(
       padding: const EdgeInsets.all(32.0),
-      child: Container(
-        width: 300,
-        height: 300,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: widget.mediaItem.thumbnailUrl != null
-              ? Image.network(
-                  widget.mediaItem.thumbnailUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      child: Icon(
-                        Icons.music_note,
-                        size: 100,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    );
-                  },
-                )
-              : Container(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.music_note,
-                    size: 100,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+      child: AnimatedBuilder(
+        animation: _rotationAnimation,
+        builder: (context, child) {
+          return Transform.rotate(
+            angle: _isPlaying ? _rotationAnimation.value : 0,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                ),
-        ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: widget.mediaItem.thumbnailUrl != null
+                    ? Image.network(
+                        widget.mediaItem.thumbnailUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            child: Icon(
+                              Icons.music_note,
+                              size: 100,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        child: Icon(
+                          Icons.music_note,
+                          size: 100,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -275,15 +329,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
       child: Column(
         children: [
-          Slider(
-            value: _duration.inMilliseconds > 0
-                ? _position.inMilliseconds / _duration.inMilliseconds
-                : 0.0,
-            onChanged: (value) {
-              _seekTo(value);
-            },
-            activeColor: Theme.of(context).colorScheme.primary,
-            inactiveColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: Theme.of(context).colorScheme.primary,
+              inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+              thumbColor: Theme.of(context).colorScheme.primary,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+              trackHeight: 4,
+            ),
+            child: Slider(
+              value: _duration.inMilliseconds > 0
+                  ? _position.inMilliseconds / _duration.inMilliseconds
+                  : 0.0,
+              onChanged: (value) {
+                _seekTo(value);
+              },
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -304,15 +366,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
+            icon: const Icon(Icons.shuffle, size: 30),
+            onPressed: () {
+              // Shuffle
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.skip_previous, size: 40),
             onPressed: () {
               // Previous track
             },
           ),
           Container(
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Theme.of(context).colorScheme.primary,
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: IconButton(
               icon: Icon(
@@ -327,6 +404,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
             icon: const Icon(Icons.skip_next, size: 40),
             onPressed: () {
               // Next track
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.repeat, size: 30),
+            onPressed: () {
+              // Repeat
             },
           ),
         ],
@@ -369,24 +452,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget _buildEqualizerPanel() {
     return Container(
       height: 300,
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          // Presets dropdown
-          _buildPresetSelector(),
-          
-          const SizedBox(height: 16),
-          
-          // Equalizer bands
-          Expanded(
-            child: _buildEqualizerBands(),
+      margin: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Additional controls
-          _buildAdditionalControls(),
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Presets dropdown
+            _buildPresetSelector(),
+            
+            const SizedBox(height: 16),
+            
+            // Equalizer bands
+            Expanded(
+              child: _buildEqualizerBands(),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Additional controls
+            _buildAdditionalControls(),
+          ],
+        ),
       ),
     );
   }
@@ -409,6 +506,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
               _applyPreset(value);
             }
           },
+          dropdownColor: Theme.of(context).cardTheme.color,
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
         ),
         const Spacer(),
         TextButton(
@@ -436,14 +535,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
               RotatedBox(
                 quarterTurns: -1,
-                child: Slider(
-                  value: band.level,
-                  min: band.minLevel,
-                  max: band.maxLevel,
-                  onChanged: (value) {
-                    _setBandLevel(index, value);
-                  },
-                  activeColor: Theme.of(context).colorScheme.primary,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: Theme.of(context).colorScheme.primary,
+                    inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                    thumbColor: Theme.of(context).colorScheme.primary,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    trackHeight: 3,
+                  ),
+                  child: Slider(
+                    value: band.level,
+                    min: band.minLevel,
+                    max: band.maxLevel,
+                    onChanged: (value) {
+                      _setBandLevel(index, value);
+                    },
+                  ),
                 ),
               ),
               Text(
@@ -464,26 +571,44 @@ class _PlayerScreenState extends State<PlayerScreen> {
         Column(
           children: [
             const Text('Bass Boost'),
-            Slider(
-              value: 0,
-              min: 0,
-              max: 1000,
-              onChanged: (value) {
-                // Set bass boost
-              },
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: Theme.of(context).colorScheme.primary,
+                inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                thumbColor: Theme.of(context).colorScheme.primary,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                trackHeight: 3,
+              ),
+              child: Slider(
+                value: 0,
+                min: 0,
+                max: 1000,
+                onChanged: (value) {
+                  // Set bass boost
+                },
+              ),
             ),
           ],
         ),
         Column(
           children: [
             const Text('Virtualizer'),
-            Slider(
-              value: 0,
-              min: 0,
-              max: 1000,
-              onChanged: (value) {
-                // Set virtualizer
-              },
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: Theme.of(context).colorScheme.primary,
+                inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                thumbColor: Theme.of(context).colorScheme.primary,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                trackHeight: 3,
+              ),
+              child: Slider(
+                value: 0,
+                min: 0,
+                max: 1000,
+                onChanged: (value) {
+                  // Set virtualizer
+                },
+              ),
             ),
           ],
         ),

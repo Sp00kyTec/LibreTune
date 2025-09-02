@@ -5,6 +5,7 @@ import 'screens/player_screen.dart';
 import 'services/content_aggregator.dart';
 import 'services/download_service.dart';
 import 'services/audio_service.dart';
+import 'themes/app_theme.dart';
 
 void main() {
   runApp(const LibreTuneApp());
@@ -22,20 +23,8 @@ class LibreTuneApp extends StatelessWidget {
     
     return MaterialApp(
       title: 'LibreTune',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-        ),
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
       themeMode: ThemeMode.dark,
       home: HomeScreen(
         contentAggregator: contentAggregator,

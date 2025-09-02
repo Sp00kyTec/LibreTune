@@ -3,6 +3,8 @@ import '../models/media_item.dart';
 import '../services/content_aggregator.dart';
 import '../services/download_service.dart';
 import '../services/audio_service.dart';
+import '../widgets/media_card.dart';
+import '../widgets/bottom_nav_bar.dart';
 import 'player_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -27,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   ContentSource? _selectedSource;
   List<MediaItem> _trendingContent = [];
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -176,281 +179,224 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('LibreTune'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: () {
-              Navigator.pushNamed(context, '/downloads');
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // TODO: Open settings
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Source selector and search
-          _buildSearchSection(),
+      body: _buildBody(),
+      bottomNavigationBar: AnimatedBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
           
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchSection() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          // Source selector dropdown
-          Row(
-            children: [
-              const Text('Source:'),
-              const SizedBox(width: 8),
-              DropdownButton<ContentSource?>(
-                value: _selectedSource,
-                hint: const Text('All Sources'),
-                items: [
-                  const DropdownMenuItem(
-                    value: null,
-                    child: Text('All Sources'),
-                  ),
-                  ...widget.contentAggregator.sources.map((source) {
-                    return DropdownMenuItem(
-                      value: source,
-                      child: Row(
-                        children: [
-                          Text(source.icon),
-                          const SizedBox(width: 8),
-                          Text(source.name),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSource = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Search field
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search music, videos, podcasts...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-            ),
-            onSubmitted: _performSearch,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (_searchResults.isNotEmpty) {
-      return _buildSearchResults();
-    } else if (_trendingContent.isNotEmpty && !_isLoading) {
-      return _buildTrendingContent();
-    } else if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    } else {
-      return _buildWelcomeScreen();
-    }
-  }
-
-  Widget _buildSearchResults() {
-    return ListView.builder(
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        final item = _searchResults[index];
-        return _buildMediaItemCard(item);
-      },
-    );
-  }
-
-  Widget _buildTrendingContent() {
-    return ListView.builder(
-      itemCount: _trendingContent.length,
-      itemBuilder: (context, index) {
-        final item = _trendingContent[index];
-        return _buildMediaItemCard(item);
-      },
-    );
-  }
-
-  Widget _buildWelcomeScreen() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.music_note,
-            size: 80,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'LibreTune',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Free, open-source streaming',
-            style: TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: _loadTrendingContent,
-            icon: const Icon(Icons.explore),
-            label: const Text('Explore Trending'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMediaItemCard(MediaItem item) {
-    return Card(
-      margin: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
-      child: ListTile(
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: item.thumbnailUrl != null
-              ? Image.network(
-                  item.thumbnailUrl!,
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 50,
-                      height: 50,
-                      color: Colors.grey[800],
-                      child: _buildMediaTypeIcon(item.type),
-                    );
-                  },
-                )
-              : Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.grey[800],
-                  child: _buildMediaTypeIcon(item.type),
-                ),
-        ),
-        title: Text(
-          item.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${item.artist ?? 'Unknown'}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Row(
-              children: [
-                Text(
-                  _getSourceIcon(item.source),
-                  style: const TextStyle(fontSize: 12),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${_formatDuration(item.duration)}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.download),
-              onPressed: () {
-                _downloadItem(item);
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.play_arrow),
-              onPressed: () {
-                _playItem(item);
-              },
-            ),
-          ],
-        ),
-        onTap: () {
-          _playItem(item);
+          // Handle navigation
+          if (index == 2) {
+            Navigator.pushNamed(context, '/downloads');
+          }
         },
       ),
     );
   }
 
-  Widget _buildMediaTypeIcon(MediaType type) {
-    switch (type) {
-      case MediaType.audio:
-        return const Icon(Icons.audiotrack, size: 24);
-      case MediaType.video:
-        return const Icon(Icons.video_library, size: 24);
-      case MediaType.podcast:
-        return const Icon(Icons.podcasts, size: 24);
-      case MediaType.musicVideo:
-        return const Icon(Icons.music_video, size: 24);
+  Widget _buildBody() {
+    switch (_currentIndex) {
+      case 0:
+        return _buildHomeContent();
+      case 1:
+        return _buildSearchContent();
+      default:
+        return _buildHomeContent();
     }
   }
 
-  String _getSourceIcon(SourceType source) {
-    switch (source) {
-      case SourceType.youtube:
-        return '📺';
-      case SourceType.soundcloud:
-        return '🔊';
-      case SourceType.bandcamp:
-        return '🎟️';
-      case SourceType.local:
-        return '📱';
-    }
+  Widget _buildHomeContent() {
+    return CustomScrollView(
+      slivers: [
+        // App bar
+        SliverAppBar(
+          expandedHeight: 200.0,
+          floating: false,
+          pinned: true,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+          flexibleSpace: FlexibleSpaceBar(
+            title: const Text('LibreTune'),
+            background: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    Theme.of(context).colorScheme.surface,
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.music_note,
+                      size: 60,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'LibreTune',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        
+        // Trending section
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Trending Now',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _loadTrendingContent,
+                  child: const Text('Refresh'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Trending content
+        if (_isLoading)
+          const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final item = _trendingContent[index];
+                return MediaCard(
+                  item: item,
+                  onTap: () => _playItem(item),
+                  onPlay: () => _playItem(item),
+                  onDownload: () => _downloadItem(item),
+                );
+              },
+              childCount: _trendingContent.length,
+            ),
+          ),
+      ],
+    );
   }
 
-  String _formatDuration(Duration? duration) {
-    if (duration == null) return '';
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  Widget _buildSearchContent() {
+    return CustomScrollView(
+      slivers: [
+        // Search app bar
+        SliverAppBar(
+          pinned: true,
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+          title: TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              hintText: 'Search music, videos, podcasts...',
+              prefixIcon: Icon(Icons.search),
+              border: InputBorder.none,
+            ),
+            onSubmitted: _performSearch,
+          ),
+        ),
+        
+        // Source selector
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                const Text('Source:'),
+                const SizedBox(width: 8),
+                DropdownButton<ContentSource?>(
+                  value: _selectedSource,
+                  hint: const Text('All Sources'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('All Sources'),
+                    ),
+                    ...widget.contentAggregator.sources.map((source) {
+                      return DropdownMenuItem(
+                        value: source,
+                        child: Row(
+                          children: [
+                            Text(source.icon),
+                            const SizedBox(width: 8),
+                            Text(source.name),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSource = value;
+                    });
+                  },
+                  dropdownColor: Theme.of(context).cardTheme.color,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Search results
+        if (_isLoading)
+          const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_searchResults.isNotEmpty)
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final item = _searchResults[index];
+                return MediaCard(
+                  item: item,
+                  onTap: () => _playItem(item),
+                  onPlay: () => _playItem(item),
+                  onDownload: () => _downloadItem(item),
+                );
+              },
+              childCount: _searchResults.length,
+            ),
+          )
+        else
+          const SliverToBoxAdapter(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.search, size: 60, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'Search for music, videos, or podcasts',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
