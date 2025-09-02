@@ -1,0 +1,27 @@
+name: libretune
+description: LibreTune - Open source streaming client
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  http: ^0.15.0
+  path: ^1.8.3
+  path_provider: ^2.1.1
+  permission_handler: ^11.0.1
+  just_audio: ^0.9.34
+  video_player: ^2.7.0
+  provider: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
