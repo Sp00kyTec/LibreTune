@@ -30,6 +30,12 @@ class MediaItem {
   final Map<String, dynamic>? metadata;
   final bool isDownloaded;
   final bool isLocal;
+  
+  // Audio enhancement settings
+  final List<double>? equalizerSettings;
+  final int? bassBoost;
+  final int? virtualizer;
+  final ReverbPreset? reverbPreset;
 
   MediaItem({
     required this.id,
@@ -49,6 +55,10 @@ class MediaItem {
     this.metadata,
     this.isDownloaded = false,
     this.isLocal = false,
+    this.equalizerSettings,
+    this.bassBoost,
+    this.virtualizer,
+    this.reverbPreset,
   });
 
   MediaItem copyWith({
@@ -69,6 +79,10 @@ class MediaItem {
     Map<String, dynamic>? metadata,
     bool? isDownloaded,
     bool? isLocal,
+    List<double>? equalizerSettings,
+    int? bassBoost,
+    int? virtualizer,
+    ReverbPreset? reverbPreset,
   }) {
     return MediaItem(
       id: id ?? this.id,
@@ -85,9 +99,13 @@ class MediaItem {
       tags: tags ?? this.tags,
       type: type ?? this.type,
       source: source ?? this.source,
-      metadata: metadata ?? this.metadata,
+      meta metadata ?? this.metadata,
       isDownloaded: isDownloaded ?? this.isDownloaded,
       isLocal: isLocal ?? this.isLocal,
+      equalizerSettings: equalizerSettings ?? this.equalizerSettings,
+      bassBoost: bassBoost ?? this.bassBoost,
+      virtualizer: virtualizer ?? this.virtualizer,
+      reverbPreset: reverbPreset ?? this.reverbPreset,
     );
   }
 
@@ -118,9 +136,18 @@ class MediaItem {
         (e) => e.toString() == 'SourceType.${json['source']}',
         orElse: () => SourceType.youtube,
       ),
-      metadata: json['metadata'] as Map<String, dynamic>?,
+      meta json['metadata'] as Map<String, dynamic>?,
       isDownloaded: json['isDownloaded'] as bool? ?? false,
       isLocal: json['isLocal'] as bool? ?? false,
+      equalizerSettings: (json['equalizerSettings'] as List?)?.cast<double>(),
+      bassBoost: json['bassBoost'] as int?,
+      virtualizer: json['virtualizer'] as int?,
+      reverbPreset: json['reverbPreset'] != null
+          ? ReverbPreset.values.firstWhere(
+              (e) => e.toString() == 'ReverbPreset.${json['reverbPreset']}',
+              orElse: () => ReverbPreset.none,
+            )
+          : null,
     );
   }
 
@@ -143,6 +170,10 @@ class MediaItem {
       'metadata': metadata,
       'isDownloaded': isDownloaded,
       'isLocal': isLocal,
+      'equalizerSettings': equalizerSettings,
+      'bassBoost': bassBoost,
+      'virtualizer': virtualizer,
+      'reverbPreset': reverbPreset?.toString().split('.').last,
     };
   }
 

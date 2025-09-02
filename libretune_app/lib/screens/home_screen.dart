@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import '../models/media_item.dart';
 import '../services/youtube_service.dart';
 import '../services/download_service.dart';
+import '../services/audio_service.dart';
+import 'player_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final YouTubeService youtubeService;
   final DownloadService downloadService;
+  final AudioService audioService;
   
   const HomeScreen({
     super.key,
     required this.youtubeService,
     required this.downloadService,
+    required this.audioService,
   });
 
   @override
@@ -80,6 +84,18 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+  }
+
+  void _playItem(MediaItem item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlayerScreen(
+          mediaItem: item,
+          audioService: widget.audioService,
+        ),
+      ),
+    );
   }
 
   @override
@@ -241,13 +257,13 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.play_arrow),
               onPressed: () {
-                // TODO: Play item
+                _playItem(item);
               },
             ),
           ],
         ),
         onTap: () {
-          // TODO: Show item details
+          _playItem(item);
         },
       ),
     );
