@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/media_item.dart';
 import '../services/download_service.dart';
+import '../widgets/media_card.dart';
 
 class DownloadsScreen extends StatefulWidget {
   final DownloadService downloadService;
@@ -15,6 +16,8 @@ class DownloadsScreen extends StatefulWidget {
 class _DownloadsScreenState extends State<DownloadsScreen> {
   List<MediaItem> _downloadedItems = [];
   bool _isLoading = true;
+  String _sortOption = 'date';
+  bool _ascending = false;
 
   @override
   void initState() {
@@ -29,7 +32,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
     try {
       // In a real implementation, this would scan the download directory
-      // For now, we'll simulate with active downloads
       final activeDownloads = widget.downloadService.getActiveDownloads();
       final completedDownloads = activeDownloads
           .where((task) => task.status == DownloadStatus.completed)
@@ -37,7 +39,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           .toList();
 
       setState(() {
-        _downloadedItems = completedDownloads;
+        _downloadedItems = _sortItems(completedDownloads);
         _isLoading = false;
       });
     } catch (e) {
@@ -50,6 +52,32 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         );
       }
     }
+  }
+
+  List<MediaItem> _sortItems(List<MediaItem> items) {
+    final sortedItems = List<MediaItem>.from(items);
+    
+    switch (_sortOption) {
+      case 'title':
+        sortedItems.sort((a, b) => a.title.compareTo(b.title));
+        break;
+      case 'artist':
+        sortedItems.sort((a, b) => (a.artist ?? '').compareTo(b.artist ?? ''));
+        break;
+      case 'date':
+        sortedItems.sort((a, b) => (b.uploadDate ?? DateTime.now())
+            .compareTo(a.uploadDate ?? DateTime.now()));
+        break;
+      case 'size':
+        // Would sort by file size in real implementation
+        break;
+    }
+    
+    if (_ascending) {
+      sortedItems.reversed;
+    }
+    
+    return sortedItems;
   }
 
   Future<void> _deleteDownload(MediaItem item) async {
@@ -86,11 +114,30 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         title: const Text('Downloads'),
         actions: [
           if (_downloadedItems.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep),
-              onPressed: () {
-                _showClearAllDialog();
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'sort') {
+                  _showSortDialog();
+                } else if (value == 'clear') {
+                  _showClearAllDialog();
+                }
               },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'sort',
+                  child: ListTile(
+                    leading: Icon(Icons.sort),
+                    title: Text('Sort'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'clear',
+                  child: ListTile(
+                    leading: Icon(Icons.delete_sweep),
+                    title: Text('Clear All'),
+                  ),
+                ),
+              ],
             ),
         ],
       ),
@@ -107,12 +154,20 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       return _buildEmptyState();
     }
 
-    return ListView.builder(
-      itemCount: _downloadedItems.length,
-      itemBuilder: (context, index) {
-        final item = _downloadedItems[index];
-        return _buildDownloadItem(item);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadDownloadedItems,
+      child: ListView.builder(
+        itemCount: _downloadedItems.length,
+        itemBuilder: (context, index) {
+          final item = _downloadedItems[index];
+          return MediaCard(
+            item: item,
+            onTap: () => _playDownloadedItem(item),
+            onPlay: () => _playDownloadedItem(item),
+            onDownload: () => _deleteDownload(item),
+          );
+        },
+      ),
     );
   }
 
@@ -150,104 +205,52 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     );
   }
 
-  Widget _buildDownloadItem(MediaItem item) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: item.thumbnailUrl != null
-              ? Image.network(
-                  item.thumbnailUrl!,
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 50,
-                      height: 50,
-                      color: Colors.grey[800],
-                      child: Icon(
-                        item.type == MediaType.audio 
-                            ? Icons.audiotrack 
-                            : Icons.video_library,
-                      ),
-                    );
-                  },
-                )
-              : Container(
-                  width: 50,
-                  height: 50,
-                  color: Colors.grey[800],
-                  child: Icon(
-                    item.type == MediaType.audio 
-                        ? Icons.audiotrack 
-                        : Icons.video_library,
-                  ),
-                ),
-        ),
-        title: Text(
-          item.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          '${item.artist ?? 'Unknown'} • '
-          '${_formatMediaType(item.type)}',
-        ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'delete') {
-              _confirmDelete(item);
-            } else if (value == 'open') {
-              _openInExternalPlayer(item);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'open',
-              child: ListTile(
-                leading: Icon(Icons.open_in_new),
-                title: Text('Open with...'),
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: ListTile(
-                leading: Icon(Icons.delete),
-                title: Text('Delete'),
+  void _showSortDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sort by'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSortOption('title', 'Title'),
+            _buildSortOption('artist', 'Artist'),
+            _buildSortOption('date', 'Date Added'),
+            _buildSortOption('size', 'File Size'),
+            const Divider(),
+            ListTile(
+              title: const Text('Ascending'),
+              trailing: Switch(
+                value: _ascending,
+                onChanged: (value) {
+                  setState(() {
+                    _ascending = value;
+                    _downloadedItems = _sortItems(_downloadedItems);
+                  });
+                  Navigator.of(context).pop();
+                },
               ),
             ),
           ],
         ),
-        onTap: () {
-          // Play the downloaded item
-          _playDownloadedItem(item);
-        },
       ),
     );
   }
 
-  void _confirmDelete(MediaItem item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Download'),
-        content: Text('Are you sure you want to delete "${item.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _deleteDownload(item);
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+  Widget _buildSortOption(String value, String label) {
+    return RadioListTile<String>(
+      value: value,
+      groupValue: _sortOption,
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            _sortOption = value;
+            _downloadedItems = _sortItems(_downloadedItems);
+          });
+          Navigator.of(context).pop();
+        }
+      },
+      title: Text(label),
     );
   }
 
@@ -312,34 +315,5 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         const SnackBar(content: Text('Playback not implemented yet')),
       );
     }
-  }
-
-  void _openInExternalPlayer(MediaItem item) {
-    // TODO: Implement opening in external player
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Opening in external player...')),
-      );
-    }
-  }
-
-  String _formatMediaType(MediaType type) {
-    switch (type) {
-      case MediaType.audio:
-        return 'Audio';
-      case MediaType.video:
-        return 'Video';
-      case MediaType.podcast:
-        return 'Podcast';
-      case MediaType.musicVideo:
-        return 'Music Video';
-    }
-  }
-
-  String _formatDuration(Duration? duration) {
-    if (duration == null) return '';
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

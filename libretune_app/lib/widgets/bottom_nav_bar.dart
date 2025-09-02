@@ -11,7 +11,7 @@ class AnimatedBottomNavBar extends StatefulWidget {
   });
 
   @override
-  State<AnimatedBottomNavBar> createState() => _AnimatedBottomNavBarState();
+  State<AnimatedBottomNavBar> widget => _AnimatedBottomNavBarState();
 }
 
 class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar>

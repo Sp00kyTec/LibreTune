@@ -12,7 +12,7 @@ class Visualizer extends StatefulWidget {
   });
 
   @override
-  State<Visualizer> createState() => _VisualizerState();
+  State<Visualizer> widget => _VisualizerState();
 }
 
 class _VisualizerState extends State<Visualizer> with SingleTickerProviderStateMixin {

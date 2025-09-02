@@ -1,5 +1,6 @@
 import '../models/media_item.dart';
 
+// Abstract interface for all content sources
 abstract class ContentSource {
   String get name;
   String get icon;
@@ -12,6 +13,7 @@ abstract class ContentSource {
   Future<List<MediaItem>> getCategory(String category, {int limit = 20});
 }
 
+// Custom exception for source-related errors
 class SourceException implements Exception {
   final String message;
   SourceException(this.message);

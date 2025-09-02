@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/services.dart';
+import '../models/media_item.dart';
 
 class AudioService {
   final AudioPlayer _player = AudioPlayer();
@@ -313,38 +314,6 @@ class Equalizer {
   void dispose() {
     _enabled = false;
     _bands.clear();
-  }
-}
-
-// Reverb presets
-enum ReverbPreset {
-  none,
-  smallRoom,
-  mediumRoom,
-  largeRoom,
-  mediumHall,
-  largeHall,
-  plate,
-}
-
-extension ReverbPresetName on ReverbPreset {
-  String get name {
-    switch (this) {
-      case ReverbPreset.none:
-        return 'None';
-      case ReverbPreset.smallRoom:
-        return 'Small Room';
-      case ReverbPreset.mediumRoom:
-        return 'Medium Room';
-      case ReverbPreset.largeRoom:
-        return 'Large Room';
-      case ReverbPreset.mediumHall:
-        return 'Medium Hall';
-      case ReverbPreset.largeHall:
-        return 'Large Hall';
-      case ReverbPreset.plate:
-        return 'Plate';
-    }
   }
 }
 

@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import '../models/media_item.dart';
+import '../models/download_task.dart';
 
 class DownloadService {
   static const String appName = 'LibreTune';
@@ -217,34 +218,4 @@ class DownloadService {
     final filePath = path.join(downloadDir.path, filename);
     return await File(filePath).exists();
   }
-}
-
-// Download task model
-class DownloadTask {
-  final String id;
-  MediaItem mediaItem;
-  DownloadStatus status;
-  double progress;
-  String? filePath;
-  String? error;
-  final DateTime createdAt;
-  
-  DownloadTask({
-    required this.id,
-    required this.mediaItem,
-    required this.status,
-    required this.progress,
-    this.filePath,
-    this.error,
-    DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
-}
-
-enum DownloadStatus {
-  queued,
-  downloading,
-  completed,
-  failed,
-  cancelled,
-  paused,
 }

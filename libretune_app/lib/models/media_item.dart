@@ -1,3 +1,4 @@
+// Media types supported by the app
 enum MediaType {
   audio,
   video,
@@ -5,6 +6,7 @@ enum MediaType {
   musicVideo
 }
 
+// Source platforms
 enum SourceType {
   youtube,
   soundcloud,
@@ -12,6 +14,40 @@ enum SourceType {
   local
 }
 
+// Reverb presets for audio enhancement
+enum ReverbPreset {
+  none,
+  smallRoom,
+  mediumRoom,
+  largeRoom,
+  mediumHall,
+  largeHall,
+  plate,
+}
+
+// Extension to get readable names for reverb presets
+extension ReverbPresetName on ReverbPreset {
+  String get name {
+    switch (this) {
+      case ReverbPreset.none:
+        return 'None';
+      case ReverbPreset.smallRoom:
+        return 'Small Room';
+      case ReverbPreset.mediumRoom:
+        return 'Medium Room';
+      case ReverbPreset.largeRoom:
+        return 'Large Room';
+      case ReverbPreset.mediumHall:
+        return 'Medium Hall';
+      case ReverbPreset.largeHall:
+        return 'Large Hall';
+      case ReverbPreset.plate:
+        return 'Plate';
+    }
+  }
+}
+
+// Main media item model
 class MediaItem {
   final String id;
   final String title;
@@ -61,6 +97,7 @@ class MediaItem {
     this.reverbPreset,
   });
 
+  // Create a copy with modified properties
   MediaItem copyWith({
     String? id,
     String? title,
@@ -109,7 +146,7 @@ class MediaItem {
     );
   }
 
-  // JSON serialization
+  // JSON serialization for data persistence
   factory MediaItem.fromJson(Map<String, dynamic> json) {
     return MediaItem(
       id: json['id'] as String,
@@ -151,6 +188,7 @@ class MediaItem {
     );
   }
 
+  // Convert to JSON for storage
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -177,12 +215,14 @@ class MediaItem {
     };
   }
 
+  // Equality for collections
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is MediaItem && other.id == id;
   }
 
+  // Hash code for collections
   @override
   int get hashCode => id.hashCode;
 }

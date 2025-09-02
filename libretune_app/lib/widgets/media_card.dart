@@ -18,7 +18,7 @@ class MediaCard extends StatefulWidget {
   });
 
   @override
-  State<MediaCard> createState() => _MediaCardState();
+  State<MediaCard> widget => _MediaCardState();
 }
 
 class _MediaCardState extends State<MediaCard> with SingleTickerProviderStateMixin {

@@ -1,0 +1,40 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Style
+    - camel_case_types
+    - camel_case_extensions
+    - library_names
+    - file_names
+    - library_prefixes
+    - non_constant_identifier_names
+    - constant_identifier_names
+    
+    # Documentation
+    - slash_for_doc_comments
+    - package_api_docs
+    
+    # Usage
+    - prefer_single_quotes
+    - prefer_const_constructors
+    - prefer_const_literals_to_create_immutables
+    - prefer_final_fields
+    - prefer_final_locals
+    - unnecessary_const
+    - unnecessary_new
+    - unnecessary_this
+    - use_rethrow_when_possible
+    
+    # Design
+    - prefer_relative_imports
+    - directives_ordering
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+  errors:
+    missing_return: error
+    missing_required_param: error
+    invalid_use_of_protected_member: error
