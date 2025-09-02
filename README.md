@@ -1,5 +1,4 @@
 # LibreTune
-# LibreTune
 
 An open-source, privacy-focused streaming client that aggregates content from multiple free sources with true offline ownership.
 
