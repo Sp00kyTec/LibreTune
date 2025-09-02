@@ -20,7 +20,7 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  State<HomeScreen> widget => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -251,6 +251,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
+          ],
         ),
         
         // Trending section
@@ -316,6 +324,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onSubmitted: _performSearch,
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
+          ],
         ),
         
         // Source selector
