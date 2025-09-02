@@ -32,11 +32,3 @@ An open-source, privacy-focused streaming client that aggregates content from mu
 3. **Verify setup:**
     ```bash
     flutter doctor
-
-### Running the App 
-**Android:**
-    ```bash
-    flutter run
-**iOS (Mac only):**
-    ```bash
-    flutter run
